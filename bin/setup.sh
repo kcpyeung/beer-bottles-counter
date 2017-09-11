@@ -2,15 +2,9 @@
 
 # set -e
 
-which python3
-if [ $? -ne 0 ]; then
-  echo "INFO: Installing python 3"
-  brew install python3
-fi
-
 if [ ! -d .venv ]; then
-  echo "INFO: Creating virtual env folder in current directory"
-  python3 -m venv .venv
+  echo "INFO: Creating python2 virtual env folder in current directory"
+  virtualenv --python=python2.7 .venv
 fi
 
 echo "Activating virtual environment"
