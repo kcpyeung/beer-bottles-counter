@@ -2,3 +2,6 @@ jupyter
 tensorflow
 matplotlib
 keras
+h5py
+Pillow
+
