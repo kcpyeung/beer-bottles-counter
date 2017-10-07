@@ -15,4 +15,5 @@ Finetuning a VGG16 pre-trained model on images of beer bottles.
 
 3. Start the notebook: `jupyter notebook` (if you're not familiar with jupyter notebook, it's just an IDE. You can refer to the [cheatsheet](https://www.cheatography.com/weidadeyue/cheat-sheets/jupyter-notebook/))
 
-4. Open `beer-bottles-counter-simplified.ipynb` and run all cells
+4. Open `01.training.ipynb` and run all cells to train, and run `02.predict.ipynb` to predict using an existing model.
+
