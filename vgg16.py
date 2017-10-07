@@ -60,9 +60,9 @@ class Vgg16():
 
     def __init_for_predicting(self, fname):
         self.build_model()
-        self.ft(2) #TODO: number of classes in original training set
-        self.model.load_weights(fname + '.h5')
         self.get_classes(fname + '.json')
+        self.ft(len(self.classes))
+        self.model.load_weights(fname + '.h5')
 
     for_training = staticmethod(for_training)
     for_predicting = staticmethod(for_predicting)
