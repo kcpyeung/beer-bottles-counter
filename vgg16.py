@@ -9,55 +9,79 @@ from scipy.ndimage.interpolation import zoom
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
 from keras.utils.data_utils import get_file
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers.core import Flatten, Dense, Dropout, Lambda
 from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.pooling import GlobalAveragePooling2D
 from keras.optimizers import SGD, RMSprop, Adam
 from keras.preprocessing import image
 
-# In case we are going to use the TensorFlow backend we need to explicitly set the Theano image ordering
-from keras import backend as K
 K.set_image_dim_ordering('th')
 
-
-vgg_mean = np.array([123.68, 116.779, 103.939], dtype=np.float32).reshape((3,1,1))
 def vgg_preprocess(x):
     """
         Subtracts the mean RGB value, and transposes RGB to BGR.
         The mean RGB was computed on the image set used to train the VGG model.
 
-        Args: 
+        Args:
             x: Image array (height x width x channels)
         Returns:
             Image array (height x width x transposed_channels)
     """
-    x = x - vgg_mean
+    x = x - np.array([123.68, 116.779, 103.939], dtype=np.float32).reshape((3, 1, 1))
     return x[:, ::-1] # reverse axis rgb->bgr
-
 
 class Vgg16():
     """
         The VGG 16 Imagenet model
     """
 
-
     def __init__(self):
         self.FILE_PATH = 'http://files.fast.ai/models/'
-        self.create()
-        self.get_classes()
 
+    def for_training():
+        instance = Vgg16()
+        instance.__init_for_training()
+        return instance
 
-    def get_classes(self):
-        """
-            Downloads the Imagenet classes index file and loads it to self.classes.
-            The file is downloaded only if it not already in the cache.
-        """
+    def __init_for_training(self):
+        self.build_model()
+        self.model.load_weights(get_file('vgg16.h5', self.FILE_PATH + 'vgg16.h5', cache_subdir='models'))
         fname = 'imagenet_class_index.json'
         fpath = get_file(fname, self.FILE_PATH+fname, cache_subdir='models')
+        self.get_classes(fpath)
+
+
+    def for_predicting(model_fname):
+        instance = Vgg16()
+        instance.__init_for_predicting(model_fname)
+        return instance
+
+
+    def __init_for_predicting(self, fname):
+        self.build_model()
+        self.ft(2) #TODO: number of classes in original training set
+        self.model.load_weights(fname + '.h5')
+        self.get_classes(fname + '.json')
+
+    for_training = staticmethod(for_training)
+    for_predicting = staticmethod(for_predicting)
+
+
+    def save(self, fname):
+        self.model.save(fname + '.h5')
+        d = {}
+        for x in range(len(self.classes)):
+            d[str(x)] = ['', self.classes[x]]
+        with open(fname + '.json', 'w') as js:
+            json.dump(d, js)
+
+
+    def get_classes(self, fpath):
         with open(fpath) as f:
             class_dict = json.load(f)
         self.classes = [class_dict[str(i)][1] for i in range(len(class_dict))]
+
 
     def predict(self, imgs, details=False):
         """
@@ -114,7 +138,7 @@ class Vgg16():
         model.add(Dropout(0.5))
 
 
-    def create(self):
+    def build_model(self):
         """
             Creates the VGG16 network achitecture and loads the pretrained weights.
 
@@ -134,9 +158,6 @@ class Vgg16():
         self.FCBlock()
         self.FCBlock()
         model.add(Dense(1000, activation='softmax'))
-
-        fname = 'vgg16.h5'
-        model.load_weights(get_file(fname, self.FILE_PATH+fname, cache_subdir='models'))
 
 
     def get_batches(self, path, gen=image.ImageDataGenerator(), shuffle=True, batch_size=8, class_mode='categorical'):
@@ -165,6 +186,7 @@ class Vgg16():
         for layer in model.layers: layer.trainable=False
         model.add(Dense(num, activation='softmax'))
         self.compile()
+
 
     def finetune(self, batches):
         """
@@ -228,4 +250,3 @@ class Vgg16():
         """
         test_batches = self.get_batches(path, shuffle=False, batch_size=batch_size, class_mode=None)
         return test_batches, self.model.predict_generator(test_batches, test_batches.samples)
-
